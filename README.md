@@ -30,6 +30,8 @@ python train&test.py --name GDNet --batch-size 1 --epoch 50 --lr 0.001
 ```
 # Acknowledgements
 The codes are built on [Li](https://github.com/Jiaxuan-Li/MGU-Net). We sincerely appreciate the authors for sharing their codes.
+# Contact
+If you have any questions,please contact 226142168@mail.sit.edu.cn
 
 
 
