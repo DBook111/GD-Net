@@ -75,9 +75,11 @@ def train(args, train_loader, model, loss_fun, optimizer, lambCoeff, device = No
                raise NameError("Unknow Loss Name!")
             return loss
         loss = lambCoeff[0]*chooseLoss('NLLLoss')+lambCoeff[1]*chooseLoss('DiceLoss')+lambCoeff[2]*chooseLoss('CrossEn')+lambCoeff[3]*chooseLoss('FocalFrequency')
-        contour_loss = HausdorffDistanceLoss()
-        loss_hd = contour_loss(output_seg, target_var_loss)
-        loss = loss + loss_hd
+        # contour_loss = HausdorffDistanceLoss()
+        # contour_loss = BoundaryLoss()
+        # loss_hd = contour_loss(output_seg, target_var_loss)
+        
+        # loss = loss + loss_hd
         # loss = chooseLoss(lossName)
         # loss = chooseLoss(2)*0.6 + loss_1*0.4   
         # loss = loss_2
@@ -117,6 +119,7 @@ def eval(phase, args, eval_data_loader, model, result_path = None, logger = None
     dice_list, mpa_list = [], []
     ret_dice, ret_pa = [], []
     eval_loss = AverageMeter()
+    ContourLoss = AverageMeter()    
     # switch to eval mode
     model.eval()
     end = time.time()
@@ -127,8 +130,8 @@ def eval(phase, args, eval_data_loader, model, result_path = None, logger = None
             modelName = model.__class__.__name__
             if modelName == 'FTC':
                 image_var = image_var.repeat(1, 3, 1, 1)              
-            ############ 计算模型的推理时间 ############
-            # print('计算模型的推理时间')
+            ############v ############
+            # print('Test Time')
             # inference_list = []
             # start_time = time.time()
             
@@ -138,8 +141,8 @@ def eval(phase, args, eval_data_loader, model, result_path = None, logger = None
             # end_time = time.time()
             # inference_time = end_time - start_time
             # inference_list.append(inference_time)
-            # print(f'推理时间：{inference_time} 秒')
-            ############ 计算模型的推理时间 ############           
+            # print(f'Test Time: {inference_time:.6f} 秒')
+            ############  compute test time ############           
             
             pred = torch.argmax(output_seg, dim=1) # ([1, 496, 496])                                   
             # 保存可视化结果, 将预测结果的张量转换为数组np
@@ -216,16 +219,18 @@ def eval(phase, args, eval_data_loader, model, result_path = None, logger = None
                     else:
                         raise NameError("Unknow Loss Name!")
                     return loss
-                loss = 1*chooseLoss('DiceLoss') + 1*chooseLoss('CrossEn') + 0.2*chooseLoss('FocalFrequency')
-                contour_loss = HausdorffDistanceLoss()
-                loss_hd = contour_loss(output_seg, target_var_loss)
-                loss = loss + loss_hd            
-                eval_loss.update(loss.data, image.size(0))                                    
-        # 测量经过时间
-        batch_time.update(time.time() - end)
-        end = time.time()
-    
-    # print('平均推理时间：', np.mean(inference_list))    
+                # loss = 1*chooseLoss('DiceLoss') + 1*chooseLoss('CrossEn') + 0.2*chooseLoss('FocalFrequency')
+                # contour_loss = HausdorffDistanceLoss()
+                # contour_loss = BoundaryLoss()
+                # loss_hd = contour_loss(output_seg, target_var_loss) # ([1, 9, 496, 496]) ([1, 496, 496])
+                # ContourLoss.update(loss_hd)
+                # loss = loss + loss_hd            
+                # eval_loss.update(loss.data, image.size(0))                                    
+        # Measuring elapsed time
+        # batch_time.update(time.time() - end)
+        # end = time.time()
+    # print('contour loss:', ContourLoss.avg)
+    # print('Average Test Time：', np.mean(inference_list))    
     dice_avg = (Dice_1.avg+Dice_2.avg+Dice_3.avg+Dice_4.avg+Dice_5.avg+Dice_6.avg+Dice_7.avg+Dice_8.avg)/8
     final_dice_avg, final_dice_1, final_dice_2, final_dice_3, final_dice_4, final_dice_5, final_dice_6, final_dice_7, final_dice_8 = dice_avg, Dice_1.avg, Dice_2.avg, Dice_3.avg, Dice_4.avg, Dice_5.avg, Dice_6.avg, Dice_7.avg, Dice_8.avg
     final_pa_avg, final_pa_1, final_pa_2, final_pa_3, final_pa_4, final_pa_5, final_pa_6, final_pa_7, final_pa_8 = mpa.avg, pa_1.avg, pa_2.avg, pa_3.avg, pa_4.avg, pa_5.avg, pa_6.avg, pa_7.avg, pa_8.avg
@@ -256,7 +261,7 @@ def eval(phase, args, eval_data_loader, model, result_path = None, logger = None
     return final_dice_avg, final_dice_1, final_dice_2, final_dice_3, final_dice_4, final_dice_5, final_dice_6, final_dice_7, final_dice_8, dice_list, eval_loss.avg
 
 ###### train ######
-def train_seg(args, train_result_path, train_loader, eval_loader, optimName, lambCoeff, device = None, alpha=None, writer=None):
+def train_seg(args, train_result_path, train_loader, eval_loader, optimName, lambCoeff, device = None, alpha=None, writer=None, iepo=None):
     # logger setting
     logger_train = Logger(fpath=osp.join(train_result_path,'dice_epoch.txt'), title='dice', resume=False)
     logger_train.set_names(['Epoch','Dice_Train','Dice_Val','Dice_1','Dice_11','Dice_2','Dice_22','Dice_3','Dice_33','Dice_4','Dice_44','Dice_5','Dice_55','Dice_6','Dice_66','Dice_7','Dice_77','Dice_8','Dice_88'])
@@ -291,18 +296,18 @@ def train_seg(args, train_result_path, train_loader, eval_loader, optimName, lam
     train_losses = []
     eval_losses = []
     for epoch in range(args.epochs):
-        lr = adjust_learning_rate(args, optimizer, epoch, args.decay) # 动态调整学习率
-        # logger_vis.info('Epoch: [{0}]\t'.format(epoch))  # 打印轮次
+        lr = adjust_learning_rate(args, optimizer, epoch, args.decay)
+        # logger_vis.info('Epoch: [{0}]\t'.format(epoch))
         # train for one epoch
         loss,dice_train,dice_1,dice_2,dice_3,dice_4,dice_5,dice_6,dice_7,dice_8 = train(args, train_loader, model, loss_fun, optimizer, lambCoeff, device=device)        
         # evaluate on validation set
         dice_val,dice_11,dice_22,dice_33,dice_44,dice_55,dice_66,dice_77,dice_88,dice_list,eval_loss = eval('train', args, eval_loader, model, device=device, loss_fun=loss_fun)
         
-        # 将损失函数添加到tensorboard中
-        ratio = 20
-        train_losses.append((loss/ratio).cpu().numpy())
-        eval_losses.append((eval_loss/ratio).cpu().numpy())
-        writer.add_scalars('Loss', {'Train loss': loss/ratio, 'Validation Loss': eval_loss/ratio}, epoch)
+        # add loss to tensorboard
+        # ratio = 20
+        # train_losses.append((loss/ratio).cpu().numpy())
+        # eval_losses.append((eval_loss/ratio).cpu().numpy())
+        # writer.add_scalars('Loss', {'Train loss': loss/ratio, 'Validation Loss': eval_loss/ratio}, epoch)
         # writer.add_scalar("train_loss", loss, epoch)
         # writer.add_scalar("eval_loss", eval_loss, epoch) 
         # writer.add_scalar("dice_train", dice_train, epoch)
@@ -318,22 +323,6 @@ def train_seg(args, train_result_path, train_loader, eval_loader, optimName, lam
                 'dice_epoch':dice_val, 'best_dice': best_dice}, is_best, model_dir)
         # logger 
         logger_train.append([epoch+1,dice_train,dice_val,dice_1,dice_11,dice_2,dice_22,dice_3,dice_33,dice_4,dice_44,dice_5,dice_55,dice_6,dice_66,dice_7,dice_77,dice_8,dice_88])
-    
-    # 使用Matplotlib绘制图像
-    # 使用Savitzky-Golay滤波器平滑数据 (可选)
-    train_losses = savgol_filter(train_losses, window_length=3, polyorder=2)
-    eval_losses = savgol_filter(eval_losses, window_length=10, polyorder=2)
-    # 使用Savitzky-Golay滤波器平滑数据 (可选)
-    plt.figure()
-    plt.plot(train_losses, label='Train Loss', color='blue')
-    plt.plot(eval_losses, label='Validation Loss', color='red')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.legend(loc='upper right')
-    plt.title('Training and Evaluation Loss')
-    # 保存图像为PNG文件
-    plt.savefig('')
-    plt.close()
 
 ###### validation ######
 def eval_seg(args, eval_result_path, eval_loader, device = None):
@@ -355,7 +344,7 @@ def eval_seg(args, eval_result_path, eval_loader, device = None):
 
 ###### test ######
 def test_seg(args, test_result_path, test_loader, device = None, alpha=None):
-    print('===========开始测试===========')
+    print('===========Test Start===========')
     # logger setting
     logger_test = Logger(osp.join(test_result_path, 'dice_mpa_epoch.txt'), title='dice&mpa', resume=False)
     logger_test.set_names(
@@ -370,7 +359,6 @@ def test_seg(args, test_result_path, test_loader, device = None, alpha=None):
     model.load_state_dict(checkpoint['state_dict'])
     # model.load_state_dict(torch.load(args.model_path))
     print('Model loaded!')
-    print('最好的网络模型是第{}个epoch保存下来的'.format(checkpoint['epoch']))
+    print('The best network model is saved from the {} epoch'.format(checkpoint['epoch']))
     # test the model on testing set
     eval('test', args, test_loader, model, result_path = test_result_path, logger = logger_test, device=device)
-
