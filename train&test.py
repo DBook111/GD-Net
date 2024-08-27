@@ -23,7 +23,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='train')
     # train setting
     parser.add_argument('--device',default=d2l.try_gpu(2), help='set which card to run')
-    parser.add_argument('--data_dir',default='/home/image/nvme/ZhouZhiLin/zhouzhilin/Retinal_segmentation/GD-Net/dataset/DUKE', help='Your Data Path Dir')
+    parser.add_argument('--data_dir',default='./GD-Net/dataset/DUKE', help='Your Data Path Dir')
     parser.add_argument('--name', default='GDNet', dest='name', type=str, help='change model')
     parser.add_argument('--lambCoeff',default=[0, 1, 1, 0], nargs='+', type=int, help='The lambda coefficient of the combined loss function, refer to the following order')
     parser.add_argument('--lossName',default='', type=str, choices=['NLLLoss','DiceLoss','CrossEn','FocalFreq'], help='set loss function')
