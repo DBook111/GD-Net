@@ -20,7 +20,19 @@ pip install -r requirements.txt
 ```
 # Dataset
 The dataset folder hierarchy should look like this:  
-![image](https://github.com/user-attachments/assets/be037952-e746-420a-a582-4d509ecab4ef)  
+```
+dataset
+--DUKE
+----train
+------img
+------mask
+----test
+------img
+------mask
+----eval
+------img
+------mask
+```
 1.DUKE DME: https://people.duke.edu/~sf59/Chiu_BOE_2014_dataset.htm  
 2.RETOUCH: https://retouch.grand-challenge.org/  
 3.Peripapillary OCT dataset: http://www.yuyeling.com/project/mgu-net/  
