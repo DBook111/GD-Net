@@ -1,5 +1,6 @@
 # GD-Net
-This is the official source code for the paper "GCN-Enhanced Spatial-Spectral Dual-Encoder Network for Simultaneous Segmentation of Retinal Layers and Fluid in OCT Images"
+This is the official source code for the paper "GCN-Enhanced Spatial-Spectral Dual-Encoder Network for Simultaneous Segmentation of Retinal Layers and Fluid in OCT Images"  
+Coded by [Zhilin Zhou](https://github.com/DBook111)
 # Citation
 If you find this code useful in your research, please cite:  
 [link to the paper](https://www.sciencedirect.com/science/article/abs/pii/S1746809424007602)
