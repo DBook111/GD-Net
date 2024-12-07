@@ -22,16 +22,16 @@ pip install -r requirements.txt
 The dataset folder hierarchy should look like this:  
 ```
 dataset
---DUKE
-----train
-------img
-------mask
-----test
-------img
-------mask
-----eval
-------img
-------mask
+|--DUKE
+|  |--train
+|     |--img
+|     |--mask
+|  |--test
+|     |--img
+|     |--mask
+|  |--eval
+|     |--img
+|     |--mask
 ```
 1.DUKE DME: https://people.duke.edu/~sf59/Chiu_BOE_2014_dataset.htm  
 2.RETOUCH: https://retouch.grand-challenge.org/  
